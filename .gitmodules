@@ -1,0 +1,6 @@
+[submodule "thirdparty/wavelib"]
+	path = thirdparty/wavelib
+	url = https://github.com/simon987/wavelib
+[submodule "thirdparty/benchmark"]
+	path = thirdparty/benchmark
+	url = https://github.com/google/benchmark

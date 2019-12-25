@@ -1,0 +1,19 @@
+.idea/
+*.iml
+*.png
+*.tar.gz
+*.cbp
+*.a
+*.so
+bm
+bench/*.csv
+bench/*.ods
+perf.*
+CMakeCache.txt
+CMakeFiles/
+cmake-build-debug
+cmake_install.cmake
+Makefile
+
+# wavelib stuff
+Bin/
