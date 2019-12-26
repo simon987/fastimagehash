@@ -12,6 +12,7 @@ set(CMAKE_BUILD_TYPE RELEASE)
 add_subdirectory(thirdparty/benchmark)
 
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_C_STANDARD 11)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "cmake/")
 
@@ -43,14 +44,17 @@ target_link_libraries(
 target_compile_options(
         fastimagehash
         PRIVATE
-        -Ofast
-        -march=native
-        -fno-stack-protector
-        -fomit-frame-pointer
-        -freciprocal-math
+#        -Ofast
+#        -march=native
+#        -fno-stack-protector
+#        -fomit-frame-pointer
+#        -freciprocal-math
+        -g
 )
 
-add_executable(bm benchmark.cpp benchmark.cpp)
+
+
+add_executable(bm benchmark.cpp)
 target_link_libraries(
         bm
         fastimagehash
@@ -62,6 +66,18 @@ set_target_properties(
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bench/"
 )
 
+add_executable(imhash imhash.c)
+target_link_libraries(
+        imhash
+        ${CMAKE_SOURCE_DIR}/libfastimagehash.so
+)
+target_compile_options(
+        imhash
+        PRIVATE
+        -g
+)
+
 add_dependencies(fastimagehash wavelib)
 add_dependencies(bm fastimagehash)
 add_dependencies(bm benchmark)
+add_dependencies(imhash fastimagehash)

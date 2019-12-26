@@ -4,6 +4,7 @@
 #include <fcntl.h>
 
 char *filepath;
+uchar tmp[512];
 
 void *load_test_file(size_t *buf_len) {
     FILE *file = fopen(filepath, "rb");
@@ -24,7 +25,7 @@ static void BM_phash(benchmark::State &state) {
     void *buf = load_test_file(&size);
 
     for (auto _ : state) {
-        phash(buf, size, state.range(), 4);
+        phash_mem(buf, tmp, size, state.range(), 4);
     }
 
     free(buf);
@@ -36,7 +37,7 @@ static void BM_whash(benchmark::State &state) {
     void *buf = load_test_file(&size);
 
     for (auto _ : state) {
-        whash(buf, size, state.range(), 0);
+        whash_mem(buf, tmp, size, state.range(), 0);
     }
 
     free(buf);
@@ -48,7 +49,7 @@ static void BM_dhash(benchmark::State &state) {
     void *buf = load_test_file(&size);
 
     for (auto _ : state) {
-        dhash(buf, size, state.range());
+        dhash_mem(buf, tmp, size, state.range());
     }
 
     free(buf);
@@ -60,7 +61,7 @@ static void BM_ahash(benchmark::State &state) {
     void *buf = load_test_file(&size);
 
     for (auto _ : state) {
-        ahash(buf, size, state.range());
+        ahash_mem(buf, tmp, size, state.range());
     }
 
     free(buf);

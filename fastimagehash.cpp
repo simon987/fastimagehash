@@ -7,70 +7,179 @@
 #include <cmath>
 #include <cstddef>
 #include <fftw3.h>
+#include <sys/stat.h>
+
+//TODO: Error handling
+//TODO: compute multiple hashes at once
 
 using namespace cv;
 
+//TODO: better err codes
+#define FASTIMAGEHASH_ERR -1
+
 __always_inline
 double median(double *arr, size_t len) {
+
     std::sort(arr, arr + len);
 
-    //todo: odd len
-    return (arr[(len / 2) - 1] + arr[len / 2]) / 2;
-}
-
-void printBitSet(std::vector<bool> *bs) {
-
-    int len = bs->size();
-
-    for (int i = 3; i <= len; i += 4) {
-        std::cout << std::hex <<
-                  (((*bs)[i - 3] << 3) | ((*bs)[i - 2] << 2) | ((*bs)[i - 1] << 1) | ((*bs)[i]));
-
+    if (len % 2 == 0) {
+        return (arr[(len / 2) - 1] + arr[len / 2]) / 2;
+    } else {
+        return arr[(len + 1 / 2)];
     }
-    std::cout << std::endl;
 }
 
-void ahash(void *buf, size_t buf_len, int hash_size) {
+void hash_to_hex_string(const uchar *h, char *out, int hash_size) {
+    int hash_len = hash_size * hash_size / 4;
 
-    Mat im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
-    resize(im, im, Size(hash_size, hash_size), 0, 0, INTER_AREA);
+    for (unsigned int i = 0; i < hash_len; i += 2) {
+        sprintf(out + i, "%02x", h[i / 2]);
+    }
+    out[hash_len + 1] = '\0';
+}
+
+void hash_to_hex_string_reversed(const uchar *h, char *out, int hash_size) {
+
+    int hash_len = hash_size * hash_size / 4;
+
+    for (unsigned int i = 0; i < hash_len; i += 2) {
+
+        uchar c = (h[i / 2] & 0x80) >> 7 |
+                  (h[i / 2] & 0x40) >> 5 |
+                  (h[i / 2] & 0x20) >> 3 |
+                  (h[i / 2] & 0x10) >> 1 |
+                  (h[i / 2] & 0x08) << 1 |
+                  (h[i / 2] & 0x04) << 3 |
+                  (h[i / 2] & 0x02) << 5 |
+                  (h[i / 2] & 0x01) << 7;
+
+        sprintf(out + i, "%02x", c);
+    }
+    out[hash_len + 1] = '\0';
+}
+
+__always_inline
+void set_bit_at(uchar *buf, unsigned int offset, bool val) {
+
+    unsigned int byte_offset = offset / 8;
+    unsigned int bit_offset = offset - byte_offset * 8;
+
+    if (val) {
+        buf[byte_offset] |= (1 << bit_offset);
+    } else {
+        buf[byte_offset] &= ~(1 << bit_offset);
+    }
+}
+
+void *load_file_in_mem(const char *filepath, size_t *size) {
+
+    struct stat info{};
+    if (stat(filepath, &info) != 0) {
+        return nullptr;
+    }
+
+    FILE *file = fopen(filepath, "rb");
+
+    if (file == nullptr) {
+        return nullptr;
+    }
+
+    void *buf = malloc(info.st_size);
+    fread(buf, sizeof(char), info.st_size, file);
+
+    *size = info.st_size;
+    return buf;
+}
+
+int ahash_file(const char *filepath, uchar *out, int hash_size) {
+
+    size_t size;
+    void *buf = load_file_in_mem(filepath, &size);
+
+    if (buf == nullptr) {
+        return FASTIMAGEHASH_ERR;
+    }
+
+    int ret = ahash_mem(buf, out, size, hash_size);
+    free(buf);
+    return ret;
+}
+
+int ahash_mem(void *buf, uchar *out, size_t buf_len, int hash_size) {
+
+    Mat im;
+    try {
+        im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
+        resize(im, im, Size(hash_size, hash_size), 0, 0, INTER_AREA);
+    } catch (Exception &e) {
+        return FASTIMAGEHASH_ERR;
+    }
 
     double avg = mean(im).val[0];
-
-    auto *hash = new std::vector<bool>();
 
     uchar *pixel = im.ptr(0);
     int endPixel = im.cols * im.rows;
     for (int i = 0; i <= endPixel; i++) {
-        hash->push_back(pixel[i] > avg);
+        set_bit_at(out, i, pixel[i] > avg);
     }
-
-//    printBitSet(hash);
-    delete hash;
+    return 0;
 }
 
-void dhash(void *buf, size_t buf_len, int hash_size) {
+int dhash_file(const char *filepath, uchar *out, int hash_size) {
 
-    Mat im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
-    resize(im, im, Size(hash_size + 1, hash_size), 0, 0, INTER_AREA);
+    size_t size;
+    void *buf = load_file_in_mem(filepath, &size);
+    if (buf == nullptr) {
+        return FASTIMAGEHASH_ERR;
+    }
 
-    auto *hash = new std::vector<bool>();
+    int ret = dhash_mem(buf, out, size, hash_size);
+    free(buf);
+    return ret;
+}
 
+int dhash_mem(void *buf, uchar *out, size_t buf_len, int hash_size) {
+
+    Mat im;
+    try {
+        im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
+        resize(im, im, Size(hash_size + 1, hash_size), 0, 0, INTER_AREA);
+    } catch (Exception &e) {
+        return FASTIMAGEHASH_ERR;
+    }
+
+    int offset = 0;
     for (int i = 0; i < im.rows; ++i) {
         uchar *pixel = im.ptr(i);
 
         for (int j = 1; j < im.cols; ++j) {
-            hash->push_back(pixel[j] > pixel[j - 1]);
+            set_bit_at(out, offset++, pixel[j] > pixel[j - 1]);
         }
     }
-
-//    printBitSet(hash);
-    delete hash;
+    return 0;
 }
 
-void whash(void *buf, size_t buf_len, int hash_size, int img_scale) {
+int whash_file(const char *filepath, uchar *out, int hash_size, int img_scale) {
 
-    Mat im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
+    size_t size;
+    void *buf = load_file_in_mem(filepath, &size);
+    if (buf == nullptr) {
+        return FASTIMAGEHASH_ERR;
+    }
+
+    int ret = whash_mem(buf, out, size, hash_size, img_scale);
+    free(buf);
+    return ret;
+}
+
+int whash_mem(void *buf, uchar *out, size_t buf_len, int hash_size, int img_scale) {
+
+    Mat im;
+    try {
+        im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
+    } catch (Exception &e) {
+        return FASTIMAGEHASH_ERR;
+    }
 
     if ((hash_size & (hash_size - 1)) != 0) {
         throw std::invalid_argument("hash_size must be a power of two");
@@ -81,7 +190,7 @@ void whash(void *buf, size_t buf_len, int hash_size, int img_scale) {
             throw std::invalid_argument("img_scale must be a power of two");
         }
     } else {
-        int image_natural_scale = (int) pow(2, (int)log2(MIN(im.rows, im.cols)));
+        int image_natural_scale = (int) pow(2, (int) log2(MIN(im.rows, im.cols)));
         img_scale = MAX(image_natural_scale, hash_size);
     }
 
@@ -92,10 +201,13 @@ void whash(void *buf, size_t buf_len, int hash_size, int img_scale) {
         throw std::invalid_argument("hash_size in a wrong range");
     }
 
-
     int dwt_level = ll_max_level - level;
 
-    resize(im, im, Size(img_scale, img_scale), 0, 0, INTER_AREA);
+    try {
+        resize(im, im, Size(img_scale, img_scale), 0, 0, INTER_AREA);
+    } catch (Exception &e) {
+        return FASTIMAGEHASH_ERR;
+    }
 
     auto data = (double *) malloc(img_scale * img_scale * sizeof(double));
 
@@ -111,25 +223,43 @@ void whash(void *buf, size_t buf_len, int hash_size, int img_scale) {
     double *coeffs = dwt2(wt, data);
     free(data);
 
+    //TODO: hash size !
     double sorted[64];
     memcpy(sorted, coeffs, sizeof(double) * 64);
 
     double med = median(sorted, 64);
-    auto *hash = new std::vector<bool>();
 
     for (int i = 0; i < hash_size * hash_size; ++i) {
-        hash->push_back(coeffs[i] > med);
+        set_bit_at(out, i, coeffs[i] > med);
     }
-//    printBitSet(hash);
-    delete hash;
+    return 0;
 }
 
-void phash(void *buf, size_t buf_len, int hash_size, int highfreq_factor) {
+int phash_file(const char *filepath, uchar *out, int hash_size, int highfreq_factor) {
+
+    size_t size;
+    void *buf = load_file_in_mem(filepath, &size);
+
+    if (buf == nullptr) {
+        return FASTIMAGEHASH_ERR;
+    }
+
+    int ret = phash_mem(buf, out, size, hash_size, highfreq_factor);
+    free(buf);
+    return ret;
+}
+
+int phash_mem(void *buf, uchar *out, size_t buf_len, int hash_size, int highfreq_factor) {
 
     int img_size = hash_size * highfreq_factor;
 
-    Mat im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
-    resize(im, im, Size(img_size, img_size), 0, 0, INTER_AREA);
+    Mat im;
+    try {
+        im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
+        resize(im, im, Size(img_size, img_size), 0, 0, INTER_AREA);
+    } catch (Exception &e) {
+        return FASTIMAGEHASH_ERR;
+    }
 
     double pixels[img_size * img_size];
 
@@ -139,10 +269,10 @@ void phash(void *buf, size_t buf_len, int hash_size, int highfreq_factor) {
         pixels[i] = (double) pixel[i] / 255;
     }
 
-    double out[img_size * img_size];
+    double dct_out[img_size * img_size];
     fftw_plan plan = fftw_plan_r2r_2d(
             img_size, img_size,
-            pixels, out,
+            pixels, dct_out,
             FFTW_REDFT10, FFTW_REDFT10, // DCT-II
             FFTW_ESTIMATE
     );
@@ -156,8 +286,8 @@ void phash(void *buf, size_t buf_len, int hash_size, int highfreq_factor) {
     int ptr = 0;
     for (int i = 0; i < hash_size; ++i) {
         for (int j = 0; j < hash_size; ++j) {
-            dct_lowfreq[ptr_low] = out[ptr];
-            sorted[ptr_low] = out[ptr];
+            dct_lowfreq[ptr_low] = dct_out[ptr];
+            sorted[ptr_low] = dct_out[ptr];
             ptr_low += 1;
             ptr += 1;
         }
@@ -166,13 +296,9 @@ void phash(void *buf, size_t buf_len, int hash_size, int highfreq_factor) {
 
     double med = median(sorted, hash_size * hash_size);
 
-    auto *hash = new std::vector<bool>();
-
     for (int i = 0; i < hash_size * hash_size; ++i) {
-        hash->push_back(dct_lowfreq[i] > med);
+        set_bit_at(out, i, dct_lowfreq[i] > med);
     }
-
-//    printBitSet(hash);
-    delete hash;
+    return 0;
 }
 
