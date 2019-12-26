@@ -8,9 +8,24 @@
 
 typedef unsigned char uchar;
 
+typedef struct multi_hash {
+    uchar *ahash;
+    uchar *phash;
+    uchar *dhash;
+    uchar *whash;
+} multi_hash_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+multi_hash_t *multi_hash_create(int hash_size);
+
+void multi_hash_destroy(multi_hash_t *h);
+
+int multi_hash_file(const char *filepath, multi_hash_t *out, int hash_size, int ph_highfreq_factor, int wh_img_scale);
+
+int multi_hash_mem(void *buf, multi_hash_t *out, size_t buf_len, int hash_size, int ph_highfreq_factor, int wh_img_scale);
 
 void hash_to_hex_string_reversed(const uchar *h, char *out, int hash_size);
 

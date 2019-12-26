@@ -54,6 +54,18 @@ int main(int argc, char *argv[]) {
                     printf("%s\tw:%s\n", argv[i], hashstr);
                 }
             }
+
+            multi_hash_t *m = multi_hash_create(8);
+            multi_hash_file(argv[i], m, 8, 4, 0);
+
+            hash_to_hex_string_reversed(m->phash, hashstr, 8);
+            printf("%s\tmp:%s\n", argv[i], hashstr);
+            hash_to_hex_string_reversed(m->ahash, hashstr, 8);
+            printf("%s\tma:%s\n", argv[i], hashstr);
+            hash_to_hex_string_reversed(m->dhash, hashstr, 8);
+            printf("%s\tmd:%s\n", argv[i], hashstr);
+            hash_to_hex_string_reversed(m->whash, hashstr, 8);
+            printf("%s\tmw:%s\n", argv[i], hashstr);
         }
     }
 }

@@ -13,21 +13,42 @@ replacement for C/C++.
   <img src="bench/results/phash_large.png"/>
 </p>
 
-*[\*benchmarks](bench/)*
-
 ### Example usage
 
-```C++
+```C
 #include "fastimagehash.h"
 
 int main() {
-    // TODO
+    unsigned char result[HASH_SIZE];
+
+    phash_file("image.jpeg", result, HASH_SIZE, HIGHFREQ_FACTOR);
 }
 ```
 
+For slight additional performance gains, `libfastimagehash` can
+compute all hashes at once instead of decoding the same 
+image at each step.
+<p align="center">
+  <img src="bench/results/multi_small.png"/>
+</p>
+
+*[\*See all benchmarks](bench/)*
+
+
 ### Build from source
 
-// TODO
+```bash
+# Download dependencies
+apt install libopencv-dev libfftw3-dev cmake
+
+# Checkout source
+git clone --recursive https://github.com/simon987/fastimagehash
+
+# Build
+cmake .
+make
+```
+
 
 **Built with** 
 * [opencv](https://github.com/opencv) for image decoding & resizing
