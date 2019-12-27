@@ -16,7 +16,7 @@ replacement for C/C++.
 ### Example usage
 
 ```C
-#include "fastimagehash.h"
+#include <fastimagehash.h>
 
 int main() {
     unsigned char result[HASH_SIZE];
@@ -47,6 +47,9 @@ git clone --recursive https://github.com/simon987/fastimagehash
 # Build
 cmake .
 make
+
+# Install as a system library
+sudo make install
 ```
 
 

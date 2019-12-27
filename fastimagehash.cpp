@@ -40,7 +40,6 @@ void hash_to_hex_string_reversed(const uchar *h, char *out, int hash_size) {
     int hash_len = hash_size * hash_size / 4;
 
     for (unsigned int i = 0; i < hash_len; i += 2) {
-
         uchar c = (h[i / 2] & 0x80) >> 7 |
                   (h[i / 2] & 0x40) >> 5 |
                   (h[i / 2] & 0x20) >> 3 |
@@ -370,7 +369,6 @@ int multi_hash_mem(void *buf, multi_hash_t *out, size_t buf_len,
         resize(im, dhash_im, Size(hash_size + 1, hash_size), 0, 0, INTER_AREA);
         resize(im, whash_im, Size(wh_img_scale, wh_img_scale), 0, 0, INTER_AREA);
         resize(im, phash_im, Size(ph_img_scale, ph_img_scale), 0, 0, INTER_AREA);
-
     } catch (Exception &e) {
         return FASTIMAGEHASH_ERR;
     }

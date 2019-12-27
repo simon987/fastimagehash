@@ -44,14 +44,13 @@ target_link_libraries(
 target_compile_options(
         fastimagehash
         PRIVATE
-#        -Ofast
-#        -march=native
-#        -fno-stack-protector
-#        -fomit-frame-pointer
-#        -freciprocal-math
+        #        -Ofast
+        #        -march=native
+        #        -fno-stack-protector
+        #        -fomit-frame-pointer
+        #        -freciprocal-math
         -g
 )
-
 
 
 add_executable(bm benchmark.cpp)
@@ -75,6 +74,13 @@ target_compile_options(
         imhash
         PRIVATE
         -g
+)
+
+set_target_properties(fastimagehash PROPERTIES PUBLIC_HEADER "fastimagehash.h")
+INSTALL(
+        TARGETS fastimagehash
+        LIBRARY DESTINATION /usr/lib/
+        PUBLIC_HEADER DESTINATION /usr/include/
 )
 
 add_dependencies(fastimagehash wavelib)
