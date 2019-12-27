@@ -8,6 +8,11 @@
 `libfastimagehash` is a [imagehash](https://github.com/JohannesBuchner/imagehash/) 
 replacement for C/C++.
 
+**See also:**
+
+ * [go bindings](https://github.com/simon987/fastimagehash-go)
+(with *cgo*).
+
 
 <p align="center">
   <img src="bench/results/phash_large.png"/>

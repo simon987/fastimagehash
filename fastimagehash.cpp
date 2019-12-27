@@ -13,8 +13,9 @@
 
 using namespace cv;
 
-//TODO: better err codes
-#define FASTIMAGEHASH_ERR -1
+#define FASTIMAGEHASH_OK 0
+#define FASTIMAGEHASH_READ_ERR -2
+#define FASTIMAGEHASH_DECODE_ERR -3
 
 __always_inline
 double median(double *arr, size_t len) {
@@ -90,7 +91,7 @@ int ahash_file(const char *filepath, uchar *out, int hash_size) {
     void *buf = load_file_in_mem(filepath, &size);
 
     if (buf == nullptr) {
-        return FASTIMAGEHASH_ERR;
+        return FASTIMAGEHASH_READ_ERR;
     }
 
     int ret = ahash_mem(buf, out, size, hash_size);
@@ -104,7 +105,7 @@ int ahash_mem(void *buf, uchar *out, size_t buf_len, int hash_size) {
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
         resize(im, im, Size(hash_size, hash_size), 0, 0, INTER_AREA);
     } catch (Exception &e) {
-        return FASTIMAGEHASH_ERR;
+        return FASTIMAGEHASH_DECODE_ERR;
     }
 
     double avg = mean(im).val[0];
@@ -114,14 +115,14 @@ int ahash_mem(void *buf, uchar *out, size_t buf_len, int hash_size) {
     for (int i = 0; i < endPixel; i++) {
         set_bit_at(out, i, pixel[i] > avg);
     }
-    return 0;
+    return FASTIMAGEHASH_OK;
 }
 
 int dhash_file(const char *filepath, uchar *out, int hash_size) {
     size_t size;
     void *buf = load_file_in_mem(filepath, &size);
     if (buf == nullptr) {
-        return FASTIMAGEHASH_ERR;
+        return FASTIMAGEHASH_READ_ERR;
     }
 
     int ret = dhash_mem(buf, out, size, hash_size);
@@ -135,7 +136,7 @@ int dhash_mem(void *buf, uchar *out, size_t buf_len, int hash_size) {
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
         resize(im, im, Size(hash_size + 1, hash_size), 0, 0, INTER_AREA);
     } catch (Exception &e) {
-        return FASTIMAGEHASH_ERR;
+        return FASTIMAGEHASH_DECODE_ERR;
     }
 
     int offset = 0;
@@ -146,14 +147,14 @@ int dhash_mem(void *buf, uchar *out, size_t buf_len, int hash_size) {
             set_bit_at(out, offset++, pixel[j] > pixel[j - 1]);
         }
     }
-    return 0;
+    return FASTIMAGEHASH_OK;
 }
 
 int whash_file(const char *filepath, uchar *out, int hash_size, int img_scale) {
     size_t size;
     void *buf = load_file_in_mem(filepath, &size);
     if (buf == nullptr) {
-        return FASTIMAGEHASH_ERR;
+        return FASTIMAGEHASH_READ_ERR;
     }
 
     int ret = whash_mem(buf, out, size, hash_size, img_scale);
@@ -166,7 +167,7 @@ int whash_mem(void *buf, uchar *out, size_t buf_len, int hash_size, int img_scal
     try {
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
     } catch (Exception &e) {
-        return FASTIMAGEHASH_ERR;
+        return FASTIMAGEHASH_DECODE_ERR;
     }
 
     if ((hash_size & (hash_size - 1)) != 0) {
@@ -194,7 +195,7 @@ int whash_mem(void *buf, uchar *out, size_t buf_len, int hash_size, int img_scal
     try {
         resize(im, im, Size(img_scale, img_scale), 0, 0, INTER_AREA);
     } catch (Exception &e) {
-        return FASTIMAGEHASH_ERR;
+        return FASTIMAGEHASH_DECODE_ERR;
     }
 
     auto data = (double *) malloc(img_scale * img_scale * sizeof(double));
@@ -225,7 +226,7 @@ int whash_mem(void *buf, uchar *out, size_t buf_len, int hash_size, int img_scal
     wave_free(w);
     free(coeffs);
 
-    return 0;
+    return FASTIMAGEHASH_OK;
 }
 
 int phash_file(const char *filepath, uchar *out, int hash_size, int highfreq_factor) {
@@ -233,7 +234,7 @@ int phash_file(const char *filepath, uchar *out, int hash_size, int highfreq_fac
     void *buf = load_file_in_mem(filepath, &size);
 
     if (buf == nullptr) {
-        return FASTIMAGEHASH_ERR;
+        return FASTIMAGEHASH_READ_ERR;
     }
 
     int ret = phash_mem(buf, out, size, hash_size, highfreq_factor);
@@ -249,7 +250,7 @@ int phash_mem(void *buf, uchar *out, size_t buf_len, int hash_size, int highfreq
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
         resize(im, im, Size(img_size, img_size), 0, 0, INTER_AREA);
     } catch (Exception &e) {
-        return FASTIMAGEHASH_ERR;
+        return FASTIMAGEHASH_DECODE_ERR;
     }
 
     double pixels[img_size * img_size];
@@ -290,7 +291,7 @@ int phash_mem(void *buf, uchar *out, size_t buf_len, int hash_size, int highfreq
     for (int i = 0; i < hash_size * hash_size; ++i) {
         set_bit_at(out, i, dct_lowfreq[i] > med);
     }
-    return 0;
+    return FASTIMAGEHASH_OK;
 }
 
 multi_hash_t *multi_hash_create(int hash_size) {
@@ -316,7 +317,7 @@ int multi_hash_file(const char *filepath, multi_hash_t *out, int hash_size,
     void *buf = load_file_in_mem(filepath, &size);
 
     if (buf == nullptr) {
-        return FASTIMAGEHASH_ERR;
+        return FASTIMAGEHASH_READ_ERR;
     }
 
     int ret = multi_hash_mem(buf, out, size, hash_size, ph_highfreq_factor, wh_img_scale);
@@ -330,7 +331,7 @@ int multi_hash_mem(void *buf, multi_hash_t *out, size_t buf_len,
     try {
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
     } catch (Exception &e) {
-        return FASTIMAGEHASH_ERR;
+        return FASTIMAGEHASH_DECODE_ERR;
     }
 
     Mat ahash_im;
@@ -370,7 +371,7 @@ int multi_hash_mem(void *buf, multi_hash_t *out, size_t buf_len,
         resize(im, whash_im, Size(wh_img_scale, wh_img_scale), 0, 0, INTER_AREA);
         resize(im, phash_im, Size(ph_img_scale, ph_img_scale), 0, 0, INTER_AREA);
     } catch (Exception &e) {
-        return FASTIMAGEHASH_ERR;
+        return FASTIMAGEHASH_DECODE_ERR;
     }
 
     auto pixels = new double[MAX(ph_img_scale, wh_img_scale) * MAX(ph_img_scale, wh_img_scale)];
@@ -457,5 +458,5 @@ int multi_hash_mem(void *buf, multi_hash_t *out, size_t buf_len,
     wave_free(w);
     free(coeffs);
     delete[] pixels;
-    return 0;
+    return FASTIMAGEHASH_OK;
 }
