@@ -11,6 +11,11 @@
 
 //TODO: Error handling
 
+static void init() __attribute__((constructor));
+void init() {
+    fftw_make_planner_thread_safe();
+}
+
 using namespace cv;
 
 #define FASTIMAGEHASH_OK 0
