@@ -66,6 +66,8 @@ int main(int argc, char *argv[]) {
             printf("%s\tmd:%s\n", argv[i], hashstr);
             hash_to_hex_string_reversed(m->whash, hashstr, 8);
             printf("%s\tmw:%s\n", argv[i], hashstr);
+
+            multi_hash_destroy(m);
         }
     }
 }

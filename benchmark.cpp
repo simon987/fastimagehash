@@ -20,7 +20,6 @@ void *load_test_file(size_t *buf_len) {
 }
 
 static void BM_phash(benchmark::State &state) {
-
     size_t size;
     void *buf = load_test_file(&size);
 
@@ -32,7 +31,6 @@ static void BM_phash(benchmark::State &state) {
 }
 
 static void BM_whash(benchmark::State &state) {
-
     size_t size;
     void *buf = load_test_file(&size);
 
@@ -44,7 +42,6 @@ static void BM_whash(benchmark::State &state) {
 }
 
 static void BM_dhash(benchmark::State &state) {
-
     size_t size;
     void *buf = load_test_file(&size);
 
@@ -56,7 +53,6 @@ static void BM_dhash(benchmark::State &state) {
 }
 
 static void BM_ahash(benchmark::State &state) {
-
     size_t size;
     void *buf = load_test_file(&size);
 
@@ -68,7 +64,6 @@ static void BM_ahash(benchmark::State &state) {
 }
 
 static void BM_multi(benchmark::State &state) {
-
     size_t size;
     void *buf = load_test_file(&size);
 
