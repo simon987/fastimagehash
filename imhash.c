@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    int do_phash = 0, do_ahash = 0, do_whash = 0, do_dhash = 0;
+    int do_phash = 0, do_ahash = 0, do_whash = 0, do_dhash = 0, do_mhash = 0;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--phash") == 0) {
@@ -25,6 +25,8 @@ int main(int argc, char *argv[]) {
             do_whash = 1;
         } else if (strcmp(argv[i], "--dhash") == 0) {
             do_dhash = 1;
+        } else if (strcmp(argv[i], "--mhash") == 0) {
+            do_mhash = 1;
         } else {
 
             uchar hash[9];
@@ -54,6 +56,12 @@ int main(int argc, char *argv[]) {
                     printf("%s\tw:%s\n", argv[i], hashstr);
                 }
             }
+            if (do_mhash) {
+                if (mhash_file(argv[i], hash, 8) == 0) {
+                    hash_to_hex_string_reversed(hash, hashstr, 8);
+                    printf("%s\tm:%s\n", argv[i], hashstr);
+                }
+            }
 
             multi_hash_t *m = multi_hash_create(8);
             multi_hash_file(argv[i], m, 8, 4, 0);
@@ -66,6 +74,8 @@ int main(int argc, char *argv[]) {
             printf("%s\tmd:%s\n", argv[i], hashstr);
             hash_to_hex_string_reversed(m->whash, hashstr, 8);
             printf("%s\tmw:%s\n", argv[i], hashstr);
+            hash_to_hex_string_reversed(m->mhash, hashstr, 8);
+            printf("%s\tmm:%s\n", argv[i], hashstr);
 
             multi_hash_destroy(m);
         }

@@ -31,6 +31,17 @@ double median(double *arr, size_t len) {
     }
 }
 
+__always_inline
+double median(uchar *arr, size_t len) {
+    std::sort(arr, arr + len);
+
+    if (len % 2 == 0) {
+        return (double)(arr[(len / 2) - 1] + arr[len / 2]) / 2;
+    } else {
+        return arr[(len + 1 / 2)];
+    }
+}
+
 void hash_to_hex_string(const uchar *h, char *out, int hash_size) {
     int hash_len = hash_size * hash_size / 4;
 
@@ -118,6 +129,42 @@ int ahash_mem(void *buf, uchar *out, size_t buf_len, int hash_size) {
     for (int i = 0; i < endPixel; i++) {
         set_bit_at(out, i, pixel[i] > avg);
     }
+    return FASTIMAGEHASH_OK;
+}
+
+int mhash_file(const char *filepath, uchar *out, int hash_size) {
+    size_t size;
+    void *buf = load_file_in_mem(filepath, &size);
+
+    if (buf == nullptr) {
+        return FASTIMAGEHASH_READ_ERR;
+    }
+
+    int ret = mhash_mem(buf, out, size, hash_size);
+    free(buf);
+    return ret;
+}
+
+int mhash_mem(void *buf, uchar *out, size_t buf_len, int hash_size) {
+    Mat im;
+    try {
+        im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
+        resize(im, im, Size(hash_size, hash_size), 0, 0, INTER_AREA);
+    } catch (Exception &e) {
+        return FASTIMAGEHASH_DECODE_ERR;
+    }
+
+    uchar *pixel = im.ptr(0);
+    const int endPixel = im.cols * im.rows;
+
+    uchar sorted[im.cols * im.rows];
+    memcpy(sorted, pixel, endPixel);
+    double med = median(sorted, endPixel);
+
+    for (int i = 0; i < endPixel; i++) {
+        set_bit_at(out, i, pixel[i] > med);
+    }
+
     return FASTIMAGEHASH_OK;
 }
 
@@ -298,12 +345,13 @@ int phash_mem(void *buf, uchar *out, size_t buf_len, const int hash_size, int hi
 
 multi_hash_t *multi_hash_create(int hash_size) {
     auto multi_hash = (multi_hash_t *) malloc(sizeof(multi_hash_t));
-    auto data = (uchar *) malloc((hash_size + 1) * 4);
+    auto data = (uchar *) malloc((hash_size + 1) * 5);
 
     multi_hash->ahash = data;
     multi_hash->phash = data + (hash_size + 1);
     multi_hash->dhash = data + (hash_size + 1) * 2;
     multi_hash->whash = data + (hash_size + 1) * 3;
+    multi_hash->mhash = data + (hash_size + 1) * 4;
 
     return multi_hash;
 }
@@ -336,7 +384,7 @@ int multi_hash_mem(void *buf, multi_hash_t *out, size_t buf_len,
         return FASTIMAGEHASH_DECODE_ERR;
     }
 
-    Mat ahash_im;
+    Mat ahash_im; // Also used for mhash!
     Mat dhash_im;
     Mat phash_im;
     Mat whash_im;
@@ -383,8 +431,15 @@ int multi_hash_mem(void *buf, multi_hash_t *out, size_t buf_len,
 
     uchar *pixel = ahash_im.ptr(0);
     int endPixel = ahash_im.cols * ahash_im.rows;
+
+    // mhash
+    uchar mhash_sorted [ahash_im.cols * ahash_im.rows];
+    mempcpy(mhash_sorted, pixel, endPixel);
+    double m_median = median(mhash_sorted, endPixel);
+
     for (int i = 0; i < endPixel; i++) {
         set_bit_at(out->ahash, i, pixel[i] > avg);
+        set_bit_at(out->mhash, i, pixel[i] > m_median);
     }
 
     //dhash

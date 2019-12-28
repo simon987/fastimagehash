@@ -13,6 +13,7 @@ typedef struct multi_hash {
     uchar *phash;
     uchar *dhash;
     uchar *whash;
+    uchar *mhash;
 } multi_hash_t;
 
 #ifdef __cplusplus
@@ -31,12 +32,10 @@ void hash_to_hex_string_reversed(const uchar *h, char *out, int hash_size);
 
 void hash_to_hex_string(const uchar *h, char *out, int hash_size);
 
-/**
- *
- * @param buf
- * @param buf_len
- * @param hash_size
- */
+int mhash_mem(void *buf, uchar *out, size_t buf_len, int hash_size);
+
+int mhash_file(const char *filepath, uchar *out, int hash_size);
+
 int ahash_mem(void *buf, uchar *out, size_t buf_len, int hash_size);
 
 int ahash_file(const char *filepath, uchar *out, int hash_size);

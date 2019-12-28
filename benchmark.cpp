@@ -63,6 +63,17 @@ static void BM_ahash(benchmark::State &state) {
     free(buf);
 }
 
+static void BM_mhash(benchmark::State &state) {
+    size_t size;
+    void *buf = load_test_file(&size);
+
+    for (auto _ : state) {
+        mhash_mem(buf, tmp, size, state.range());
+    }
+
+    free(buf);
+}
+
 static void BM_multi(benchmark::State &state) {
     size_t size;
     void *buf = load_test_file(&size);
@@ -83,6 +94,7 @@ BENCHMARK(BM_phash)->ArgName("size")->Arg(8);
 BENCHMARK(BM_whash)->ArgName("size")->Arg(8);
 BENCHMARK(BM_dhash)->ArgName("size")->Arg(8);
 BENCHMARK(BM_ahash)->ArgName("size")->Arg(8);
+BENCHMARK(BM_mhash)->ArgName("size")->Arg(8);
 BENCHMARK(BM_multi)->ArgName("size")->Arg(8);
 
 
