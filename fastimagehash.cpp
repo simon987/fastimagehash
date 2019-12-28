@@ -108,12 +108,12 @@ int ahash_file(const char *filepath, uchar *out, int hash_size) {
         return FASTIMAGEHASH_READ_ERR;
     }
 
-    int ret = ahash_mem(buf, out, size, hash_size);
+    int ret = ahash_mem(buf, size, out, hash_size);
     free(buf);
     return ret;
 }
 
-int ahash_mem(void *buf, uchar *out, size_t buf_len, int hash_size) {
+int ahash_mem(void *buf, size_t buf_len, uchar *out, int hash_size) {
     Mat im;
     try {
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
@@ -140,12 +140,12 @@ int mhash_file(const char *filepath, uchar *out, int hash_size) {
         return FASTIMAGEHASH_READ_ERR;
     }
 
-    int ret = mhash_mem(buf, out, size, hash_size);
+    int ret = mhash_mem(buf, size, out, hash_size);
     free(buf);
     return ret;
 }
 
-int mhash_mem(void *buf, uchar *out, size_t buf_len, int hash_size) {
+int mhash_mem(void *buf, size_t buf_len, uchar *out, int hash_size) {
     Mat im;
     try {
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
@@ -175,12 +175,12 @@ int dhash_file(const char *filepath, uchar *out, int hash_size) {
         return FASTIMAGEHASH_READ_ERR;
     }
 
-    int ret = dhash_mem(buf, out, size, hash_size);
+    int ret = dhash_mem(buf, size, out, hash_size);
     free(buf);
     return ret;
 }
 
-int dhash_mem(void *buf, uchar *out, size_t buf_len, int hash_size) {
+int dhash_mem(void *buf, size_t buf_len, uchar *out, int hash_size) {
     Mat im;
     try {
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
@@ -207,12 +207,12 @@ int whash_file(const char *filepath, uchar *out, int hash_size, int img_scale, c
         return FASTIMAGEHASH_READ_ERR;
     }
 
-    int ret = whash_mem(buf, out, size, hash_size, img_scale, wname);
+    int ret = whash_mem(buf, size, out, hash_size, img_scale, wname);
     free(buf);
     return ret;
 }
 
-int whash_mem(void *buf, uchar *out, size_t buf_len, const int hash_size, int img_scale, const char *wname) {
+int whash_mem(void *buf, size_t buf_len, uchar *out, const int hash_size, int img_scale, const char *wname) {
     Mat im;
     try {
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
@@ -290,12 +290,12 @@ int phash_file(const char *filepath, uchar *out, const int hash_size, int highfr
         return FASTIMAGEHASH_READ_ERR;
     }
 
-    int ret = phash_mem(buf, out, size, hash_size, highfreq_factor);
+    int ret = phash_mem(buf, size, out, hash_size, highfreq_factor);
     free(buf);
     return ret;
 }
 
-int phash_mem(void *buf, uchar *out, size_t buf_len, const int hash_size, int highfreq_factor) {
+int phash_mem(void *buf, size_t buf_len, uchar *out, const int hash_size, int highfreq_factor) {
     int img_size = hash_size * highfreq_factor;
 
     Mat im;
@@ -374,14 +374,19 @@ int multi_hash_file(const char *filepath, multi_hash_t *out, int hash_size,
         return FASTIMAGEHASH_READ_ERR;
     }
 
-    int ret = multi_hash_mem(buf, out, size, hash_size, ph_highfreq_factor, wh_img_scale, wname);
+    int ret = multi_hash_mem(buf, size, out, hash_size, ph_highfreq_factor, wh_img_scale, wname);
     free(buf);
     return ret;
 }
 
-int multi_hash_mem(void *buf, multi_hash_t *out, size_t buf_len,
+int multi_hash_mem(void *buf, size_t buf_len, multi_hash_t *out,
                    int hash_size, int ph_highfreq_factor, int wh_img_scale,
                    const char*wname) {
+
+    if (strcmp(wname, "haar") != 0 && strcmp(wname, "db4") != 0) {
+        throw std::invalid_argument("wname must be either of 'haar' or 'db4'");
+    }
+
     Mat im;
     try {
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);

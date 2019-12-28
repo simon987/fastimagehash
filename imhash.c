@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
             }
 
             multi_hash_t *m = multi_hash_create(8);
-            multi_hash_file(argv[i], m, 8, 4, 0);
+            multi_hash_file(argv[i], m, 8, 4, 0, "haar");
 
             hash_to_hex_string_reversed(m->phash, hashstr, 8);
             printf("%s\tmp:%s\n", argv[i], hashstr);
