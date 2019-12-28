@@ -200,24 +200,28 @@ int dhash_mem(void *buf, uchar *out, size_t buf_len, int hash_size) {
     return FASTIMAGEHASH_OK;
 }
 
-int whash_file(const char *filepath, uchar *out, int hash_size, int img_scale) {
+int whash_file(const char *filepath, uchar *out, int hash_size, int img_scale, const char* wname) {
     size_t size;
     void *buf = load_file_in_mem(filepath, &size);
     if (buf == nullptr) {
         return FASTIMAGEHASH_READ_ERR;
     }
 
-    int ret = whash_mem(buf, out, size, hash_size, img_scale);
+    int ret = whash_mem(buf, out, size, hash_size, img_scale, wname);
     free(buf);
     return ret;
 }
 
-int whash_mem(void *buf, uchar *out, size_t buf_len, const int hash_size, int img_scale) {
+int whash_mem(void *buf, uchar *out, size_t buf_len, const int hash_size, int img_scale, const char *wname) {
     Mat im;
     try {
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
     } catch (Exception &e) {
         return FASTIMAGEHASH_DECODE_ERR;
+    }
+
+    if (strcmp(wname, "haar") != 0 && strcmp(wname, "db4") != 0) {
+        throw std::invalid_argument("wname must be either of 'haar' or 'db4'");
     }
 
     if ((hash_size & (hash_size - 1)) != 0) {
@@ -256,7 +260,7 @@ int whash_mem(void *buf, uchar *out, size_t buf_len, const int hash_size, int im
         data[i] = (double) pixel[i] / 255;
     }
 
-    wave_object w = wave_init("haar");
+    wave_object w = wave_init(wname);
     wt2_object wt = wt2_init(w, "dwt", img_scale, img_scale, dwt_level);
 
     double *coeffs = dwt2(wt, data);
@@ -362,7 +366,7 @@ void multi_hash_destroy(multi_hash_t *h) {
 }
 
 int multi_hash_file(const char *filepath, multi_hash_t *out, int hash_size,
-                    int ph_highfreq_factor, int wh_img_scale) {
+                    int ph_highfreq_factor, int wh_img_scale, const char* wname) {
     size_t size;
     void *buf = load_file_in_mem(filepath, &size);
 
@@ -370,13 +374,14 @@ int multi_hash_file(const char *filepath, multi_hash_t *out, int hash_size,
         return FASTIMAGEHASH_READ_ERR;
     }
 
-    int ret = multi_hash_mem(buf, out, size, hash_size, ph_highfreq_factor, wh_img_scale);
+    int ret = multi_hash_mem(buf, out, size, hash_size, ph_highfreq_factor, wh_img_scale, wname);
     free(buf);
     return ret;
 }
 
 int multi_hash_mem(void *buf, multi_hash_t *out, size_t buf_len,
-                   int hash_size, int ph_highfreq_factor, int wh_img_scale) {
+                   int hash_size, int ph_highfreq_factor, int wh_img_scale,
+                   const char*wname) {
     Mat im;
     try {
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
@@ -497,8 +502,7 @@ int multi_hash_mem(void *buf, multi_hash_t *out, size_t buf_len,
         pixels[i] = (double) pixel[i] / 255;
     }
 
-    //TODO: haar option
-    wave_object w = wave_init("haar");
+    wave_object w = wave_init(wname);
     wt2_object wt = wt2_init(w, "dwt", wh_img_scale, wh_img_scale, dwt_level);
 
     double *coeffs = dwt2(wt, pixels);

@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
                 }
             }
             if (do_whash) {
-                if (whash_file(argv[i], hash, 8, 0) == 0) {
+                if (whash_file(argv[i], hash, 8, 0, "haar") == 0) {
                     hash_to_hex_string_reversed(hash, hashstr, 8);
                     printf("%s\tw:%s\n", argv[i], hashstr);
                 }

@@ -35,7 +35,7 @@ static void BM_whash(benchmark::State &state) {
     void *buf = load_test_file(&size);
 
     for (auto _ : state) {
-        whash_mem(buf, tmp, size, state.range(), 0);
+        whash_mem(buf, tmp, size, state.range(), 0, "haar");
     }
 
     free(buf);
