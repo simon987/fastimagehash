@@ -9,8 +9,6 @@
 #include <fftw3.h>
 #include <sys/stat.h>
 
-//TODO: Error handling
-
 static void init() __attribute__((constructor));
 void init() {
     fftw_make_planner_thread_safe();
@@ -167,7 +165,7 @@ int whash_file(const char *filepath, uchar *out, int hash_size, int img_scale) {
     return ret;
 }
 
-int whash_mem(void *buf, uchar *out, size_t buf_len, int hash_size, int img_scale) {
+int whash_mem(void *buf, uchar *out, size_t buf_len, const int hash_size, int img_scale) {
     Mat im;
     try {
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
@@ -216,11 +214,10 @@ int whash_mem(void *buf, uchar *out, size_t buf_len, int hash_size, int img_scal
 
     double *coeffs = dwt2(wt, data);
 
-    //TODO: hash size !
-    double sorted[64];
-    memcpy(sorted, coeffs, sizeof(double) * 64);
+    double sorted[hash_size * hash_size];
+    memcpy(sorted, coeffs, sizeof(double) * hash_size * hash_size);
 
-    double med = median(sorted, 64);
+    double med = median(sorted, hash_size * hash_size);
 
     for (int i = 0; i < hash_size * hash_size; ++i) {
         set_bit_at(out, i, coeffs[i] > med);
@@ -234,7 +231,7 @@ int whash_mem(void *buf, uchar *out, size_t buf_len, int hash_size, int img_scal
     return FASTIMAGEHASH_OK;
 }
 
-int phash_file(const char *filepath, uchar *out, int hash_size, int highfreq_factor) {
+int phash_file(const char *filepath, uchar *out, const int hash_size, int highfreq_factor) {
     size_t size;
     void *buf = load_file_in_mem(filepath, &size);
 
@@ -247,7 +244,7 @@ int phash_file(const char *filepath, uchar *out, int hash_size, int highfreq_fac
     return ret;
 }
 
-int phash_mem(void *buf, uchar *out, size_t buf_len, int hash_size, int highfreq_factor) {
+int phash_mem(void *buf, uchar *out, size_t buf_len, const int hash_size, int highfreq_factor) {
     int img_size = hash_size * highfreq_factor;
 
     Mat im;
