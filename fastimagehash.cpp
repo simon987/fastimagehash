@@ -94,7 +94,7 @@ void *load_file_in_mem(const char *filepath, size_t *size) {
     }
 
     void *buf = malloc(info.st_size);
-    fread(buf, sizeof(char), info.st_size, file);
+    size_t _ = fread(buf, sizeof(char), info.st_size, file);
 
     *size = info.st_size;
     return buf;
