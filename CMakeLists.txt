@@ -44,12 +44,12 @@ target_link_libraries(
 target_compile_options(
         fastimagehash
         PRIVATE
-        #        -Ofast
+        -fPIC
+        -Ofast
         #        -march=native
-        #        -fno-stack-protector
-        #        -fomit-frame-pointer
-        #        -freciprocal-math
-        -g
+        -fno-stack-protector
+        -fomit-frame-pointer
+        -freciprocal-math
 )
 
 
