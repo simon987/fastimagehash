@@ -53,28 +53,28 @@ target_compile_options(
 )
 
 
-#add_executable(bm benchmark.cpp)
-#target_link_libraries(
-#        bm
-#        fastimagehash
-#        benchmark
-#)
-#set_target_properties(
-#        bm
-#        PROPERTIES
-#        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bench/"
-#)
+add_executable(bm benchmark.cpp)
+target_link_libraries(
+        bm
+        fastimagehash
+        benchmark
+)
+set_target_properties(
+        bm
+        PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bench/"
+)
 
-#add_executable(imhash imhash.c)
-#target_link_libraries(
-#        imhash
-#        ${CMAKE_SOURCE_DIR}/libfastimagehash.so
-#)
-#target_compile_options(
-#        imhash
-#        PRIVATE
-#        -g
-#)
+add_executable(imhash imhash.c)
+target_link_libraries(
+        imhash
+        ${CMAKE_SOURCE_DIR}/libfastimagehash.so
+)
+target_compile_options(
+        imhash
+        PRIVATE
+        -g
+)
 
 set_target_properties(fastimagehash PROPERTIES PUBLIC_HEADER "fastimagehash.h")
 INSTALL(
@@ -83,7 +83,7 @@ INSTALL(
         PUBLIC_HEADER DESTINATION /usr/include/
 )
 
-#add_dependencies(fastimagehash wavelib)
-#add_dependencies(bm fastimagehash)
-#add_dependencies(bm benchmark)
-#add_dependencies(imhash fastimagehash)
+add_dependencies(fastimagehash wavelib)
+add_dependencies(bm fastimagehash)
+add_dependencies(bm benchmark)
+add_dependencies(imhash fastimagehash)
