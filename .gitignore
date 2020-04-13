@@ -17,3 +17,6 @@ Makefile
 
 # wavelib stuff
 Bin/
+
+imhash
+install_manifest.txt
