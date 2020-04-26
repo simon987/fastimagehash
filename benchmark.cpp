@@ -35,7 +35,7 @@ static void BM_whash(benchmark::State &state) {
     void *buf = load_test_file(&size);
 
     for (auto _ : state) {
-        whash_mem(buf, size, tmp, state.range(), 0, "haar");
+        whash_mem(buf, size, tmp, state.range(), 0, 0, "haar");
     }
 
     free(buf);
@@ -74,27 +74,11 @@ static void BM_mhash(benchmark::State &state) {
     free(buf);
 }
 
-static void BM_multi(benchmark::State &state) {
-    size_t size;
-    void *buf = load_test_file(&size);
-
-    multi_hash_t *m = multi_hash_create(state.range());
-
-    for (auto _ : state) {
-        multi_hash_file(filepath, m, state.range(), 4, 0, "haar");
-    }
-
-    multi_hash_destroy(m);
-
-    free(buf);
-}
-
 BENCHMARK(BM_phash)->ArgName("size")->Arg(8);
 BENCHMARK(BM_whash)->ArgName("size")->Arg(8);
 BENCHMARK(BM_dhash)->ArgName("size")->Arg(8);
 BENCHMARK(BM_ahash)->ArgName("size")->Arg(8);
 BENCHMARK(BM_mhash)->ArgName("size")->Arg(8);
-BENCHMARK(BM_multi)->ArgName("size")->Arg(8);
 
 
 int main(int argc, char **argv) {

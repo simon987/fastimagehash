@@ -25,22 +25,8 @@ add_library(
         fastimagehash.cpp fastimagehash.h
 )
 
-add_library(
-        fastimagehash_debug
-        SHARED
-        fastimagehash.cpp fastimagehash.h
-)
-
 target_include_directories(
         fastimagehash
-        PUBLIC
-        ${CMAKE_SOURCE_DIR}/thirdparty/wavelib/header/
-        ${OpenCV_INCLUDE_DIRS}
-        ${FFTW_INCLUDE_DIRS}
-)
-
-target_include_directories(
-        fastimagehash_debug
         PUBLIC
         ${CMAKE_SOURCE_DIR}/thirdparty/wavelib/header/
         ${OpenCV_INCLUDE_DIRS}
@@ -55,34 +41,17 @@ target_link_libraries(
         pthread
 )
 
-target_link_libraries(
-        fastimagehash_debug
-        asan
-        ${OpenCV_LIBS}
-        ${FFTW_LIBRARIES}
-        wavelib
-        pthread
-)
 
 target_compile_options(
         fastimagehash
         PRIVATE
         -fPIC
         -Ofast
-        #        -march=native
+        -march=native
         -fno-stack-protector
         -fomit-frame-pointer
         -freciprocal-math
 )
-
-target_compile_options(
-        fastimagehash_debug
-        PRIVATE
-        -fPIC
-        -g
-        -fsanitize=address
-)
-
 
 add_executable(bm benchmark.cpp)
 target_link_libraries(
@@ -99,7 +68,7 @@ set_target_properties(
 add_executable(imhash imhash.c)
 target_link_libraries(
         imhash
-        ${CMAKE_SOURCE_DIR}/libfastimagehash_debug.so
+        ${CMAKE_SOURCE_DIR}/libfastimagehash.so
 )
 target_compile_options(
         imhash
@@ -109,13 +78,12 @@ target_compile_options(
 
 set_target_properties(fastimagehash PROPERTIES PUBLIC_HEADER "fastimagehash.h")
 INSTALL(
-        TARGETS fastimagehash fastimagehash_debug
+        TARGETS fastimagehash
         LIBRARY DESTINATION /usr/lib/
         PUBLIC_HEADER DESTINATION /usr/include/
 )
 
 add_dependencies(fastimagehash wavelib)
-add_dependencies(fastimagehash_debug wavelib)
 add_dependencies(bm fastimagehash)
 add_dependencies(bm benchmark)
-add_dependencies(imhash fastimagehash_debug)
+add_dependencies(imhash fastimagehash)

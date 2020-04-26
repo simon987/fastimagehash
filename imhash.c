@@ -29,8 +29,8 @@ int main(int argc, char *argv[]) {
             do_mhash = 1;
         } else {
 
-            uchar hash[9];
-            char hashstr[17];
+            uchar hash[256];
+            char hashstr[512];
 
             if (do_phash) {
                 if (phash_file(argv[i], hash, 8, 4) == 0) {
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
                 }
             }
             if (do_whash) {
-                if (whash_file(argv[i], hash, 8, 0, "haar") == 0) {
+                if (whash_file(argv[i], hash, 8, 0, 1, "haar") == 0) {
                     hash_to_hex_string_reversed(hash, hashstr, 8);
                     printf("%s\tw:%s\n", argv[i], hashstr);
                 }
@@ -62,22 +62,6 @@ int main(int argc, char *argv[]) {
                     printf("%s\tm:%s\n", argv[i], hashstr);
                 }
             }
-
-            multi_hash_t *m = multi_hash_create(8);
-            multi_hash_file(argv[i], m, 8, 4, 0, "haar");
-
-            hash_to_hex_string_reversed(m->phash, hashstr, 8);
-            printf("%s\tmp:%s\n", argv[i], hashstr);
-            hash_to_hex_string_reversed(m->ahash, hashstr, 8);
-            printf("%s\tma:%s\n", argv[i], hashstr);
-            hash_to_hex_string_reversed(m->dhash, hashstr, 8);
-            printf("%s\tmd:%s\n", argv[i], hashstr);
-            hash_to_hex_string_reversed(m->whash, hashstr, 8);
-            printf("%s\tmw:%s\n", argv[i], hashstr);
-            hash_to_hex_string_reversed(m->mhash, hashstr, 8);
-            printf("%s\tmm:%s\n", argv[i], hashstr);
-
-            multi_hash_destroy(m);
         }
     }
 }

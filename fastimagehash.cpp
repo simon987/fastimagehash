@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 
 static void init() __attribute__((constructor));
+
 void init() {
     fftw_make_planner_thread_safe();
 }
@@ -36,7 +37,7 @@ double median(uchar *arr, size_t len) {
     std::sort(arr, arr + len);
 
     if (len % 2 == 0) {
-        return (double)(arr[(len / 2) - 1] + arr[len / 2]) / 2;
+        return (double) (arr[(len / 2) - 1] + arr[len / 2]) / 2;
     } else {
         return arr[(len + 1 / 2)];
     }
@@ -200,19 +201,20 @@ int dhash_mem(void *buf, size_t buf_len, uchar *out, int hash_size) {
     return FASTIMAGEHASH_OK;
 }
 
-int whash_file(const char *filepath, uchar *out, int hash_size, int img_scale, const char* wname) {
+int whash_file(const char *filepath, uchar *out, int hash_size, int img_scale, int remove_max_ll, const char *wname) {
     size_t size;
     void *buf = load_file_in_mem(filepath, &size);
     if (buf == nullptr) {
         return FASTIMAGEHASH_READ_ERR;
     }
 
-    int ret = whash_mem(buf, size, out, hash_size, img_scale, wname);
+    int ret = whash_mem(buf, size, out, hash_size, img_scale, remove_max_ll, wname);
     free(buf);
     return ret;
 }
 
-int whash_mem(void *buf, size_t buf_len, uchar *out, const int hash_size, int img_scale, const char *wname) {
+int whash_mem(void *buf, size_t buf_len, uchar *out, const int hash_size, int img_scale, int remove_max_ll,
+              const char *wname) {
     Mat im;
     try {
         im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
@@ -246,6 +248,10 @@ int whash_mem(void *buf, size_t buf_len, uchar *out, const int hash_size, int im
 
     int dwt_level = ll_max_level - level;
 
+    if (dwt_level < 1) {
+        dwt_level = 1;
+    }
+
     try {
         resize(im, im, Size(img_scale, img_scale), 0, 0, INTER_AREA);
     } catch (Exception &e) {
@@ -258,6 +264,21 @@ int whash_mem(void *buf, size_t buf_len, uchar *out, const int hash_size, int im
     const int endPixel = im.cols * im.rows;
     for (int i = 0; i < endPixel; i++) {
         data[i] = (double) pixel[i] / 255;
+    }
+
+    if (remove_max_ll) {
+        // Remove low level frequency
+        wave_object w_haar_tmp = wave_init("haar");
+        wt2_object wt_haar_tmp = wt2_init(w_haar_tmp, "dwt", img_scale, img_scale, ll_max_level);
+
+        double *coeffs = dwt2(wt_haar_tmp, data);
+
+        coeffs[0] = 0;
+
+        idwt2(wt_haar_tmp, coeffs, data);
+
+        wt2_free(wt_haar_tmp);
+        wave_free(w_haar_tmp);
     }
 
     wave_object w = wave_init(wname);
@@ -344,185 +365,5 @@ int phash_mem(void *buf, size_t buf_len, uchar *out, const int hash_size, int hi
     for (int i = 0; i < hash_size * hash_size; ++i) {
         set_bit_at(out, i, dct_lowfreq[i] > med);
     }
-    return FASTIMAGEHASH_OK;
-}
-
-multi_hash_t *multi_hash_create(int hash_size) {
-    auto multi_hash = (multi_hash_t *) malloc(sizeof(multi_hash_t));
-    auto data = (uchar *) malloc((hash_size + 1) * 5);
-
-    multi_hash->ahash = data;
-    multi_hash->phash = data + (hash_size + 1);
-    multi_hash->dhash = data + (hash_size + 1) * 2;
-    multi_hash->whash = data + (hash_size + 1) * 3;
-    multi_hash->mhash = data + (hash_size + 1) * 4;
-
-    return multi_hash;
-}
-
-void multi_hash_destroy(multi_hash_t *h) {
-    free(h->ahash);
-    free(h);
-}
-
-int multi_hash_file(const char *filepath, multi_hash_t *out, int hash_size,
-                    int ph_highfreq_factor, int wh_img_scale, const char* wname) {
-    size_t size;
-    void *buf = load_file_in_mem(filepath, &size);
-
-    if (buf == nullptr) {
-        return FASTIMAGEHASH_READ_ERR;
-    }
-
-    int ret = multi_hash_mem(buf, size, out, hash_size, ph_highfreq_factor, wh_img_scale, wname);
-    free(buf);
-    return ret;
-}
-
-int multi_hash_mem(void *buf, size_t buf_len, multi_hash_t *out,
-                   int hash_size, int ph_highfreq_factor, int wh_img_scale,
-                   const char*wname) {
-
-    if (strcmp(wname, "haar") != 0 && strcmp(wname, "db4") != 0) {
-        throw std::invalid_argument("wname must be either of 'haar' or 'db4'");
-    }
-
-    Mat im;
-    try {
-        im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
-    } catch (Exception &e) {
-        return FASTIMAGEHASH_DECODE_ERR;
-    }
-
-    Mat ahash_im; // Also used for mhash!
-    Mat dhash_im;
-    Mat phash_im;
-    Mat whash_im;
-
-    int ph_img_scale = hash_size * ph_highfreq_factor;
-
-    if ((hash_size & (hash_size - 1)) != 0) {
-        throw std::invalid_argument("hash_size must be a power of two");
-    }
-
-    if (wh_img_scale != 0) {
-        if ((wh_img_scale & (wh_img_scale - 1)) != 0) {
-            throw std::invalid_argument("wh_img_scale must be a power of two");
-        }
-    } else {
-        int image_natural_scale = (int) pow(2, (int) log2(MIN(im.rows, im.cols)));
-        wh_img_scale = MAX(image_natural_scale, hash_size);
-    }
-
-    int ll_max_level = (int) log2(wh_img_scale);
-    int level = (int) log2(hash_size);
-
-    if (ll_max_level < level) {
-        throw std::invalid_argument("hash_size in a wrong range");
-    }
-
-    int dwt_level = ll_max_level - level;
-
-    try {
-        im = imdecode(Mat(1, buf_len, CV_8UC1, buf), IMREAD_GRAYSCALE);
-
-        resize(im, ahash_im, Size(hash_size, hash_size), 0, 0, INTER_AREA);
-        resize(im, dhash_im, Size(hash_size + 1, hash_size), 0, 0, INTER_AREA);
-        resize(im, whash_im, Size(wh_img_scale, wh_img_scale), 0, 0, INTER_AREA);
-        resize(im, phash_im, Size(ph_img_scale, ph_img_scale), 0, 0, INTER_AREA);
-    } catch (Exception &e) {
-        return FASTIMAGEHASH_DECODE_ERR;
-    }
-
-    auto pixels = new double[MAX(ph_img_scale, wh_img_scale) * MAX(ph_img_scale, wh_img_scale)];
-
-    // ahash
-    double avg = mean(ahash_im).val[0];
-
-    uchar *pixel = ahash_im.ptr(0);
-    int endPixel = ahash_im.cols * ahash_im.rows;
-
-    // mhash
-    uchar mhash_sorted [ahash_im.cols * ahash_im.rows];
-    mempcpy(mhash_sorted, pixel, endPixel);
-    double m_median = median(mhash_sorted, endPixel);
-
-    for (int i = 0; i < endPixel; i++) {
-        set_bit_at(out->ahash, i, pixel[i] > avg);
-        set_bit_at(out->mhash, i, pixel[i] > m_median);
-    }
-
-    //dhash
-    int offset = 0;
-    for (int i = 0; i < dhash_im.rows; ++i) {
-        pixel = dhash_im.ptr(i);
-
-        for (int j = 1; j < dhash_im.cols; ++j) {
-            set_bit_at(out->dhash, offset++, pixel[j] > pixel[j - 1]);
-        }
-    }
-
-    //phash
-    pixel = phash_im.ptr(0);
-    endPixel = phash_im.cols * phash_im.rows;
-    for (int i = 0; i < endPixel; i++) {
-        pixels[i] = (double) pixel[i] / 255;
-    }
-
-    double dct_out[ph_img_scale * ph_img_scale];
-    fftw_plan plan = fftw_plan_r2r_2d(
-            ph_img_scale, ph_img_scale,
-            pixels, dct_out,
-            FFTW_REDFT10, FFTW_REDFT10, // DCT-II
-            FFTW_ESTIMATE
-    );
-    fftw_execute(plan);
-    fftw_destroy_plan(plan);
-
-    double dct_lowfreq[hash_size * hash_size];
-    double sorted[hash_size * hash_size];
-
-    int ptr_low = 0;
-    int ptr = 0;
-    for (int i = 0; i < hash_size; ++i) {
-        for (int j = 0; j < hash_size; ++j) {
-            dct_lowfreq[ptr_low] = dct_out[ptr];
-            sorted[ptr_low] = dct_out[ptr];
-            ptr_low += 1;
-            ptr += 1;
-        }
-        ptr += (ph_img_scale - hash_size);
-    }
-
-    double med = median(sorted, hash_size * hash_size);
-
-    for (int i = 0; i < hash_size * hash_size; ++i) {
-        set_bit_at(out->phash, i, dct_lowfreq[i] > med);
-    }
-
-    //whash
-    pixel = whash_im.ptr(0);
-    endPixel = whash_im.cols * whash_im.rows;
-    for (int i = 0; i < endPixel; i++) {
-        pixels[i] = (double) pixel[i] / 255;
-    }
-
-    wave_object w = wave_init(wname);
-    wt2_object wt = wt2_init(w, "dwt", wh_img_scale, wh_img_scale, dwt_level);
-
-    double *coeffs = dwt2(wt, pixels);
-
-    memcpy(sorted, coeffs, sizeof(double) * (hash_size * hash_size));
-
-    med = median(sorted, hash_size * hash_size);
-
-    for (int i = 0; i < hash_size * hash_size; ++i) {
-        set_bit_at(out->whash, i, coeffs[i] > med);
-    }
-
-    wt2_free(wt);
-    wave_free(w);
-    free(coeffs);
-    delete[] pixels;
     return FASTIMAGEHASH_OK;
 }

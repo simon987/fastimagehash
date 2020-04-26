@@ -37,15 +37,3 @@ print_result("ahash", timeit.timeit(
     number=COUNT
 ))
 
-print_result("multi", timeit.timeit(
-    setup="from imagehash import average_hash,phash,whash,dhash \n"
-          "from PIL import Image",
-    stmt="im = Image.open('%s');"
-         "size = %d;"
-         "average_hash(im.copy(), hash_size=size);"
-         "phash(im.copy(), hash_size=size);"
-         "whash(im.copy(), hash_size=size, remove_max_haar_ll=False);"
-         "dhash(im.copy(), hash_size=size);"
-         % (IMAGE, SIZE),
-    number=COUNT
-))

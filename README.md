@@ -18,6 +18,8 @@ replacement for C/C++.
   <img src="bench/results/phash_large.png"/>
 </p>
 
+*[\*See all benchmarks](bench/README.md)*
+
 ### Example usage
 
 ```C
@@ -29,15 +31,6 @@ int main() {
     phash_file("image.jpeg", result, HASH_SIZE, HIGHFREQ_FACTOR);
 }
 ```
-
-For slight additional performance gains, `libfastimagehash` can
-compute all hashes at once instead of decoding the same 
-image at each step.
-<p align="center">
-  <img src="bench/results/multi_small.png"/>
-</p>
-
-*[\*See all benchmarks](bench/)*
 
 
 ### Build from source

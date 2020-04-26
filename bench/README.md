@@ -30,6 +30,3 @@ fastimagehash v0.1
 ![ahash_s](results/ahash_small.png)
 ![ahash_l](results/ahash_large.png)
 
-**multi_hash**
-![multi_s](results/multi_small.png)
-![multi_l](results/multi_large.png)

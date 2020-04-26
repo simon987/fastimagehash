@@ -34,6 +34,4 @@ for f in files:
                 method = "ahash"
             if "whash" in m:
                 method = "whash"
-            if "multi" in m:
-                method = "multi"
             print("%s_%s,%s" % (f, method, t))
