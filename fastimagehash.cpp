@@ -269,6 +269,9 @@ int whash_mem(void *buf, size_t buf_len, uchar *out, const int hash_size, int im
     if (remove_max_ll) {
         // Remove low level frequency
         wave_object w_haar_tmp = wave_init("haar");
+        int max_level = (int) (log((double) img_scale / ((double) w_haar_tmp->filtlength - 1.0)) / log(2.0));
+        ll_max_level = MIN(ll_max_level, max_level);
+
         wt2_object wt_haar_tmp = wt2_init(w_haar_tmp, "dwt", img_scale, img_scale, ll_max_level);
 
         double *coeffs = dwt2(wt_haar_tmp, data);
@@ -279,6 +282,7 @@ int whash_mem(void *buf, size_t buf_len, uchar *out, const int hash_size, int im
 
         wt2_free(wt_haar_tmp);
         wave_free(w_haar_tmp);
+        free(coeffs);
     }
 
     wave_object w = wave_init(wname);
