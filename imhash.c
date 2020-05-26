@@ -1,6 +1,7 @@
 #include "fastimagehash.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 void print_usage() {
     printf("Using fastimagehash library v%s\n", FASTIMAGEHASH_VERSION);
@@ -15,6 +16,7 @@ int main(int argc, char *argv[]) {
     }
 
     int do_phash = 0, do_ahash = 0, do_whash = 0, do_dhash = 0, do_mhash = 0;
+    int size = 8;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--phash") == 0) {
@@ -25,6 +27,8 @@ int main(int argc, char *argv[]) {
             do_whash = 1;
         } else if (strcmp(argv[i], "--dhash") == 0) {
             do_dhash = 1;
+        } else if (strcmp(argv[i], "--size") == 0) {
+            size = atoi(argv[i + 1]);
         } else if (strcmp(argv[i], "--mhash") == 0) {
             do_mhash = 1;
         } else {
@@ -33,32 +37,32 @@ int main(int argc, char *argv[]) {
             char hashstr[512];
 
             if (do_phash) {
-                if (phash_file(argv[i], hash, 8, 4) == 0) {
-                    hash_to_hex_string_reversed(hash, hashstr, 8);
+                if (phash_file(argv[i], hash, size, 4) == 0) {
+                    hash_to_hex_string_reversed(hash, hashstr, size);
                     printf("%s\tp:%s\n", argv[i], hashstr);
                 }
             }
             if (do_ahash) {
-                if (ahash_file(argv[i], hash, 8) == 0) {
-                    hash_to_hex_string_reversed(hash, hashstr, 8);
+                if (ahash_file(argv[i], hash, size) == 0) {
+                    hash_to_hex_string_reversed(hash, hashstr, size);
                     printf("%s\ta:%s\n", argv[i], hashstr);
                 }
             }
             if (do_dhash) {
-                if (dhash_file(argv[i], hash, 8) == 0) {
+                if (dhash_file(argv[i], hash, size) == 0) {
                     hash_to_hex_string_reversed(hash, hashstr, 8);
                     printf("%s\td:%s\n", argv[i], hashstr);
                 }
             }
             if (do_whash) {
-                if (whash_file(argv[i], hash, 16, 0, 1, "haar") == 0) {
-                    hash_to_hex_string_reversed(hash, hashstr, 16);
+                if (whash_file(argv[i], hash, size, 0, 1, "haar") == 0) {
+                    hash_to_hex_string_reversed(hash, hashstr, size);
                     printf("%s\tw:%s\n", argv[i], hashstr);
                 }
             }
             if (do_mhash) {
-                if (mhash_file(argv[i], hash, 8) == 0) {
-                    hash_to_hex_string_reversed(hash, hashstr, 8);
+                if (mhash_file(argv[i], hash, size) == 0) {
+                    hash_to_hex_string_reversed(hash, hashstr, size);
                     printf("%s\tm:%s\n", argv[i], hashstr);
                 }
             }
