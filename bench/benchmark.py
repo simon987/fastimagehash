@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import timeit
 import sys
 
@@ -6,8 +6,10 @@ IMAGE = sys.argv[1]
 COUNT = 20
 SIZE = 8
 
+
 def print_result(method, time):
     print("%s_%s,%d" % (IMAGE, method, time / COUNT * 1000000000))
+
 
 print_result("phash", timeit.timeit(
     setup="from imagehash import phash \n"
@@ -36,4 +38,3 @@ print_result("ahash", timeit.timeit(
     stmt="average_hash(Image.open('%s'), hash_size=%d)" % (IMAGE, SIZE),
     number=COUNT
 ))
-

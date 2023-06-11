@@ -15,7 +15,7 @@ files = (
 )
 
 for f in files:
-    out = check_output(["python", "benchmark.py", f])
+    out = check_output(["python3", "benchmark.py", f])
     print(out.decode(), end="")
 
 print()
