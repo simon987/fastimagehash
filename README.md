@@ -12,6 +12,7 @@ replacement for C/C++.
 
  * [go bindings](https://github.com/simon987/fastimagehash-go)
 (with *cgo*).
+* [imagehash-web](https://github.com/simon987/imagehash-web) (Javascript version)
 
 
 <p align="center">
